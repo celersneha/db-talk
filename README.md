@@ -70,6 +70,77 @@ Open [http://localhost:3000](http://localhost:3000) in your browser.
 
 4. **Reset**: Click "Reset Connection" to disconnect and clear session
 
+## Database Setup (Optional)
+
+For testing purposes, you can set up a local PostgreSQL database with sample healthcare data.
+
+### 1. Generate Database Files
+
+Run the setup script to generate `docker-compose.yml` and `init.sql`:
+
+```bash
+npm run setup-db
+# or
+tsx scripts/setup_docker.ts
+```
+
+This will create:
+
+- `docker-compose.yml` - Docker Compose configuration with Postgres 15 and Adminer
+- `scripts/init.sql` - SQL file with 50 entries for each table (patients, doctors, appointments, medical_records, prescriptions)
+
+### 2. Start Docker Containers
+
+```bash
+docker compose up -d
+```
+
+This starts:
+
+- **PostgreSQL 15** on port 5432
+- **Adminer** (database management UI) on port 8080
+
+### 3. Seed the Database
+
+```bash
+npm run seed
+# or
+tsx scripts/seed_data.ts
+```
+
+### 4. Access the Database
+
+**Connection URL:**
+
+```
+postgresql://dbuser:dbpassword@localhost:5432/healthcare
+```
+
+**Adminer UI:**
+
+- URL: http://localhost:8080
+- System: PostgreSQL
+- Server: postgres
+- Username: dbuser
+- Password: dbpassword
+- Database: healthcare
+
+### 5. Stop Docker Containers
+
+```bash
+docker compose down
+```
+
+### Database Schema
+
+The sample database includes 5 tables with 50 entries each:
+
+- **patients** - Patient information (name, email, phone, DOB, gender, address)
+- **doctors** - Doctor information (name, email, specialization, license, experience)
+- **appointments** - Scheduled appointments between patients and doctors
+- **medical_records** - Medical visit records with diagnoses and treatments
+- **prescriptions** - Medication prescriptions linked to medical records
+
 ## Project Structure
 
 ```

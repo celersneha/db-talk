@@ -138,8 +138,10 @@ export function validateSqlQuery(sql: string): {
     "REVOKE",
   ];
 
+  // Use word boundary regex to match whole keywords only
   for (const keyword of forbiddenKeywords) {
-    if (trimmedSql.includes(keyword)) {
+    const keywordPattern = new RegExp(`\\b${keyword}\\b`);
+    if (keywordPattern.test(trimmedSql)) {
       return {
         valid: false,
         error: `Query contains forbidden keyword: ${keyword}. Only SELECT queries are allowed.`,
