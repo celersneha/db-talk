@@ -13,6 +13,7 @@ Core Principles:
 - Modular and DRY codebase
 - Secure handling of database credentials
 - LLM-driven query generation with strict safety guards
+- For using colors, always use from globals.css, never hardcode color anywhere
 
 ---
 

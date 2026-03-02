@@ -57,16 +57,16 @@ export function ConnectionForm({
   };
 
   return (
-    <div className="h-full bg-gray-50 border-r border-gray-200 p-6 flex flex-col">
+    <div className="h-full bg-card border-r border-border p-6 flex flex-col">
       {/* Header */}
       <div className="mb-6">
         <div className="flex items-center gap-2 mb-2">
-          <Database className="w-6 h-6 text-blue-600" />
-          <h2 className="text-xl font-semibold text-gray-900">
+          <Database className="w-6 h-6 text-primary" />
+          <h2 className="text-xl font-semibold text-foreground">
             Database Connection
           </h2>
         </div>
-        <p className="text-sm text-gray-600">
+        <p className="text-sm text-muted-foreground">
           Connect to your PostgreSQL database
         </p>
       </div>
@@ -76,8 +76,8 @@ export function ConnectionForm({
         <div
           className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-sm font-medium ${
             isConnected
-              ? "bg-green-100 text-green-800"
-              : "bg-gray-200 text-gray-700"
+              ? "bg-primary text-primary-foreground"
+              : "bg-muted text-muted-foreground"
           }`}
         >
           {isConnected ? (
@@ -100,7 +100,7 @@ export function ConnectionForm({
           <div className="mb-4">
             <label
               htmlFor="dbUrl"
-              className="block text-sm font-medium text-gray-700 mb-2"
+              className="block text-sm font-medium text-foreground mb-2"
             >
               PostgreSQL URL
             </label>
@@ -111,21 +111,21 @@ export function ConnectionForm({
               onChange={(e) => setDbUrl(e.target.value)}
               onKeyPress={handleKeyPress}
               placeholder="postgresql://user:password@host:5432/dbname"
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
+              className="w-full px-3 py-2 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent text-sm bg-background text-foreground placeholder:text-muted-foreground"
               disabled={isConnecting}
             />
           </div>
 
           {error && (
-            <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg">
-              <p className="text-sm text-red-800">{error}</p>
+            <div className="mb-4 p-3 bg-destructive/10 border border-destructive rounded-lg">
+              <p className="text-sm text-destructive">{error}</p>
             </div>
           )}
 
           <button
             onClick={handleConnect}
             disabled={isConnecting || !dbUrl.trim()}
-            className="w-full bg-blue-600 text-white py-2.5 rounded-lg font-medium hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors flex items-center justify-center gap-2"
+            className="w-full bg-primary text-primary-foreground py-2.5 rounded-lg font-medium hover:bg-primary/90 disabled:bg-muted disabled:cursor-not-allowed transition-colors flex items-center justify-center gap-2"
           >
             {isConnecting ? (
               <>
@@ -142,18 +142,18 @@ export function ConnectionForm({
       {/* Connected State */}
       {isConnected && (
         <>
-          <div className="mb-4 p-4 bg-white border border-gray-200 rounded-lg">
-            <h3 className="text-sm font-semibold text-gray-900 mb-2">
+          <div className="mb-4 p-4 bg-background border border-border rounded-lg">
+            <h3 className="text-sm font-semibold text-foreground mb-2">
               Schema Overview
             </h3>
-            <div className="text-xs text-gray-600 font-mono max-h-60 overflow-y-auto whitespace-pre-wrap">
+            <div className="text-xs text-muted-foreground font-mono max-h-60 overflow-y-auto whitespace-pre-wrap">
               {schema}
             </div>
           </div>
 
           <button
             onClick={handleReset}
-            className="w-full bg-red-600 text-white py-2.5 rounded-lg font-medium hover:bg-red-700 transition-colors flex items-center justify-center gap-2"
+            className="w-full bg-destructive text-primary-foreground py-2.5 rounded-lg font-medium hover:bg-destructive/90 transition-colors flex items-center justify-center gap-2"
           >
             <RotateCcw className="w-4 h-4" />
             Reset Connection
@@ -162,11 +162,11 @@ export function ConnectionForm({
       )}
 
       {/* Info Section */}
-      <div className="mt-auto pt-6 border-t border-gray-200">
-        <h3 className="text-xs font-semibold text-gray-700 mb-2">
+      <div className="mt-auto pt-6 border-t border-border">
+        <h3 className="text-xs font-semibold text-foreground mb-2">
           Security Notice
         </h3>
-        <p className="text-xs text-gray-500">
+        <p className="text-xs text-muted-foreground">
           Your database credentials are stored securely in server memory and are
           never exposed to the client.
         </p>

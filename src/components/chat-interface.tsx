@@ -34,13 +34,13 @@ export function ChatInterface({ isConnected }: ChatInterfaceProps) {
   const isLoading = status === "streaming" || status === "submitted";
 
   return (
-    <div className="h-full bg-white flex flex-col">
+    <div className="h-full bg-background flex flex-col">
       {/* Header */}
-      <div className="border-b border-gray-200 px-6 py-4">
-        <h1 className="text-2xl font-bold text-gray-900">
+      <div className="border-b border-border px-6 py-4">
+        <h1 className="text-2xl font-bold text-foreground">
           Chat with Your Database
         </h1>
-        <p className="text-sm text-gray-600 mt-1">
+        <p className="text-sm text-muted-foreground mt-1">
           Ask questions in natural language and I&apos;ll query your database
         </p>
       </div>
@@ -52,14 +52,14 @@ export function ChatInterface({ isConnected }: ChatInterfaceProps) {
             <div className="text-center max-w-md">
               {isConnected ? (
                 <>
-                  <Database className="w-12 h-12 mx-auto mb-4 text-blue-600" />
-                  <h2 className="text-xl font-semibold text-gray-900 mb-2">
+                  <Database className="w-12 h-12 mx-auto mb-4 text-primary" />
+                  <h2 className="text-xl font-semibold text-foreground mb-2">
                     Ready to chat!
                   </h2>
-                  <p className="text-gray-600">
+                  <p className="text-muted-foreground">
                     Ask me anything about your database. I can help you:
                   </p>
-                  <ul className="text-left mt-4 space-y-2 text-sm text-gray-700">
+                  <ul className="text-left mt-4 space-y-2 text-sm text-foreground">
                     <li>• Find specific records</li>
                     <li>• Count and aggregate data</li>
                     <li>• Join related tables</li>
@@ -68,11 +68,11 @@ export function ChatInterface({ isConnected }: ChatInterfaceProps) {
                 </>
               ) : (
                 <>
-                  <Database className="w-12 h-12 mx-auto mb-4 text-gray-400" />
-                  <h2 className="text-xl font-semibold text-gray-900 mb-2">
+                  <Database className="w-12 h-12 mx-auto mb-4 text-muted-foreground" />
+                  <h2 className="text-xl font-semibold text-foreground mb-2">
                     No database connected
                   </h2>
-                  <p className="text-gray-600">
+                  <p className="text-muted-foreground">
                     Connect to your PostgreSQL database using the form on the
                     left to start chatting.
                   </p>
@@ -87,12 +87,12 @@ export function ChatInterface({ isConnected }: ChatInterfaceProps) {
                 <div className="flex items-start gap-3">
                   {/* Avatar */}
                   {message.role === "assistant" ? (
-                    <div className="w-8 h-8 rounded-full bg-blue-600 flex items-center justify-center flex-shrink-0">
-                      <Bot className="w-5 h-5 text-white" />
+                    <div className="w-8 h-8 rounded-full bg-primary flex items-center justify-center flex-shrink-0">
+                      <Bot className="w-5 h-5 text-primary-foreground" />
                     </div>
                   ) : (
-                    <div className="w-8 h-8 rounded-full bg-gray-700 flex items-center justify-center flex-shrink-0">
-                      <User className="w-5 h-5 text-white" />
+                    <div className="w-8 h-8 rounded-full bg-secondary flex items-center justify-center flex-shrink-0">
+                      <User className="w-5 h-5 text-foreground" />
                     </div>
                   )}
 
@@ -105,8 +105,8 @@ export function ChatInterface({ isConnected }: ChatInterfaceProps) {
                             <div
                               className={`rounded-lg px-4 py-3 ${
                                 message.role === "user"
-                                  ? "bg-blue-600 text-white"
-                                  : "bg-gray-100 text-gray-900"
+                                  ? "bg-primary text-primary-foreground"
+                                  : "bg-card text-foreground"
                               }`}
                             >
                               <p className="whitespace-pre-wrap">{part.text}</p>
@@ -126,9 +126,9 @@ export function ChatInterface({ isConnected }: ChatInterfaceProps) {
                         return (
                           <div
                             key={callId}
-                            className="bg-gray-900 text-gray-100 rounded-lg p-4 text-sm font-mono overflow-x-auto"
+                            className="bg-secondary text-foreground rounded-lg p-4 text-sm font-mono overflow-x-auto border border-border"
                           >
-                            <div className="flex items-center gap-2 text-xs text-gray-400 mb-2">
+                            <div className="flex items-center gap-2 text-xs text-muted-foreground mb-2">
                               <Table className="w-4 h-4" />
                               <span>SQL Query</span>
                               {(part.state === "input-streaming" ||
@@ -153,12 +153,12 @@ export function ChatInterface({ isConnected }: ChatInterfaceProps) {
                                   | undefined;
                                 if (!output) return null;
                                 return (
-                                  <div className="mt-3 pt-3 border-t border-gray-700">
-                                    <div className="text-xs text-gray-400 mb-2">
+                                  <div className="mt-3 pt-3 border-t border-border">
+                                    <div className="text-xs text-muted-foreground mb-2">
                                       Result:
                                     </div>
                                     {output.success ? (
-                                      <div className="text-green-400">
+                                      <div className="text-primary">
                                         <pre className="overflow-x-auto text-xs">
                                           {JSON.stringify(
                                             output.data,
@@ -168,12 +168,12 @@ export function ChatInterface({ isConnected }: ChatInterfaceProps) {
                                           {JSON.stringify(output.data, null, 2)
                                             .length > 1000 && "..."}
                                         </pre>
-                                        <p className="text-xs text-gray-400 mt-2">
+                                        <p className="text-xs text-muted-foreground mt-2">
                                           {output.rowCount} row(s) returned
                                         </p>
                                       </div>
                                     ) : (
-                                      <p className="text-red-400">
+                                      <p className="text-destructive">
                                         Error: {output.error}
                                       </p>
                                     )}
@@ -181,8 +181,8 @@ export function ChatInterface({ isConnected }: ChatInterfaceProps) {
                                 );
                               })()}
                             {part.state === "output-error" && (
-                              <div className="mt-3 pt-3 border-t border-gray-700">
-                                <p className="text-red-400">
+                              <div className="mt-3 pt-3 border-t border-border">
+                                <p className="text-destructive">
                                   Error: {part.errorText}
                                 </p>
                               </div>
@@ -200,11 +200,11 @@ export function ChatInterface({ isConnected }: ChatInterfaceProps) {
 
             {isLoading && (
               <div className="flex items-start gap-3 mb-6">
-                <div className="w-8 h-8 rounded-full bg-blue-600 flex items-center justify-center flex-shrink-0">
-                  <Bot className="w-5 h-5 text-white" />
+                <div className="w-8 h-8 rounded-full bg-primary flex items-center justify-center flex-shrink-0">
+                  <Bot className="w-5 h-5 text-primary-foreground" />
                 </div>
-                <div className="bg-gray-100 rounded-lg px-4 py-3">
-                  <Loader2 className="w-4 h-4 animate-spin text-gray-600" />
+                <div className="bg-card rounded-lg px-4 py-3">
+                  <Loader2 className="w-4 h-4 animate-spin text-muted-foreground" />
                 </div>
               </div>
             )}
@@ -229,10 +229,10 @@ export function ChatInterface({ isConnected }: ChatInterfaceProps) {
             errorMessage.toLowerCase().includes("reconnect");
 
           return (
-            <div className="px-6 py-3 bg-red-50 border-t border-red-200">
-              <p className="text-sm text-red-600">{errorMessage}</p>
+            <div className="px-6 py-3 bg-destructive/10 border-t border-destructive">
+              <p className="text-sm text-destructive">{errorMessage}</p>
               {isSessionExpired && (
-                <p className="text-xs text-red-500 mt-1">
+                <p className="text-xs text-destructive mt-1">
                   Please use the &quot;Reset Connection&quot; button on the left
                   and reconnect.
                 </p>
@@ -242,7 +242,7 @@ export function ChatInterface({ isConnected }: ChatInterfaceProps) {
         })()}
 
       {/* Input Area */}
-      <div className="border-t border-gray-200 px-6 py-4 bg-gray-50">
+      <div className="border-t border-border px-6 py-4 bg-card">
         <form
           onSubmit={(e) => {
             e.preventDefault();
