@@ -5,6 +5,7 @@
 
 // Shared components
 export { ChatInterface } from "./shared/chat-interface";
+export { SchemaDisplay } from "./shared/schema-display";
 
 // PostgreSQL-specific components
 export { ConnectionForm } from "./postgresql/connection-form";
