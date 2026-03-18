@@ -57,8 +57,21 @@ interface TableColumn {
   data_type: string;
 }
 
+interface PrimaryKey {
+  table_name: string;
+  column_name: string;
+}
+
+interface ForeignKey {
+  table_name: string;
+  column_name: string;
+  referenced_table: string;
+  referenced_column: string;
+}
+
 /**
- * Extract database schema from information_schema
+ * Extract database schema with relationships (foreign keys, primary keys)
+ * Supports: JOINs, subqueries, window functions, CTEs, aggregations
  */
 export async function extractDatabaseSchema(
   dbUrl: string,
@@ -68,46 +81,84 @@ export async function extractDatabaseSchema(
   try {
     await client.connect();
 
-    // Query to get all tables and their columns from public schema
-    const query = `
-      SELECT 
-        table_name,
-        column_name,
-        data_type
-      FROM 
-        information_schema.columns
-      WHERE 
-        table_schema = 'public'
-      ORDER BY 
-        table_name, 
-        ordinal_position;
-    `;
+    // Get all columns
+    const columnsResult = await client.query<TableColumn>(`
+      SELECT table_name, column_name, data_type
+      FROM information_schema.columns
+      WHERE table_schema = 'public'
+      ORDER BY table_name, ordinal_position
+    `);
 
-    const result = await client.query<TableColumn>(query);
+    // Get primary keys
+    const pkResult = await client.query<PrimaryKey>(`
+      SELECT tc.table_name, kcu.column_name
+      FROM information_schema.table_constraints tc
+      JOIN information_schema.key_column_usage kcu 
+        ON tc.constraint_name = kcu.constraint_name
+      WHERE tc.constraint_type = 'PRIMARY KEY' AND tc.table_schema = 'public'
+    `);
+
+    // Get foreign keys
+    const fkResult = await client.query<ForeignKey>(`
+      SELECT
+        tc.table_name,
+        kcu.column_name,
+        ccu.table_name AS referenced_table,
+        ccu.column_name AS referenced_column
+      FROM information_schema.table_constraints tc
+      JOIN information_schema.key_column_usage kcu ON tc.constraint_name = kcu.constraint_name
+      JOIN information_schema.constraint_column_usage ccu ON ccu.constraint_name = tc.constraint_name
+      WHERE tc.constraint_type = 'FOREIGN KEY' AND tc.table_schema = 'public'
+    `);
+
     await client.end();
 
-    if (result.rows.length === 0) {
+    if (columnsResult.rows.length === 0) {
       return { schema: "", error: "No tables found in the public schema" };
     }
 
-    // Group columns by table
-    const tableMap = new Map<string, string[]>();
+    // Build lookup maps
+    const pkMap = new Map<string, Set<string>>();
+    const fkMap = new Map<string, Map<string, string>>();
 
-    for (const row of result.rows) {
+    pkResult.rows.forEach((pk) => {
+      const key = pk.table_name;
+      if (!pkMap.has(key)) pkMap.set(key, new Set());
+      pkMap.get(key)!.add(pk.column_name);
+    });
+
+    fkResult.rows.forEach((fk) => {
+      const key = fk.table_name;
+      if (!fkMap.has(key)) fkMap.set(key, new Map());
+      fkMap
+        .get(key)!
+        .set(fk.column_name, `${fk.referenced_table}.${fk.referenced_column}`);
+    });
+
+    // Group columns by table with constraint annotations
+    const tableMap = new Map<string, string[]>();
+    for (const row of columnsResult.rows) {
+      const isPK = pkMap.get(row.table_name)?.has(row.column_name);
+      const fkRef = fkMap.get(row.table_name)?.get(row.column_name);
+
+      let columnStr = `${row.column_name}: ${row.data_type}`;
+      if (isPK) columnStr += " [PK]";
+      if (fkRef) columnStr += ` [FK→${fkRef}]`;
+
       const columns = tableMap.get(row.table_name) || [];
-      columns.push(`${row.column_name}: ${row.data_type}`);
+      columns.push(columnStr);
       tableMap.set(row.table_name, columns);
     }
 
-    // Convert to LLM-friendly format
+    // Format LLM-friendly output with relationships
     const schemaLines: string[] = [];
     for (const [tableName, columns] of tableMap.entries()) {
-      schemaLines.push(`Table: ${tableName} (${columns.join(", ")})`);
+      schemaLines.push(`Table: ${tableName}\n  ${columns.join(", ")}`);
     }
 
     return { schema: schemaLines.join("\n") };
   } catch (error) {
-    await client.end().catch(() => {}); // Ensure cleanup
+    await client.end().catch(() => {});
     return {
       schema: "",
       error:

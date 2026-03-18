@@ -8,6 +8,7 @@ interface TableInfo {
   columns: Array<{
     name: string;
     type: string;
+    constraints?: string;
   }>;
 }
 
@@ -26,23 +27,39 @@ export function SchemaDisplay({ schema }: SchemaDisplayProps) {
 
   // Parse the schema string into table information
   const tables: TableInfo[] = [];
+  const lines = schema.split("\n");
 
-  const lines = schema.split("\n").filter((line) => line.trim());
+  let currentTable: TableInfo | null = null;
 
   for (const line of lines) {
-    // Expected format: "Table: table_name (col1: type1, col2: type2, ...)"
-    const tableMatch = line.match(/^Table:\s*(\w+)\s*\((.+)\)$/);
-    if (tableMatch) {
-      const tableName = tableMatch[1];
-      const columnsStr = tableMatch[2];
+    const trimmed = line.trim();
 
-      // Parse columns
-      const columns = columnsStr.split(", ").map((col) => {
-        const [name, type] = col.split(": ").map((s) => s.trim());
-        return { name, type };
+    // Check for table header: "Table: table_name"
+    const tableMatch = trimmed.match(/^Table:\s*(\w+)$/);
+    if (tableMatch) {
+      currentTable = { name: tableMatch[1], columns: [] };
+      tables.push(currentTable);
+      continue;
+    }
+
+    // Parse columns from indented lines
+    if (currentTable && trimmed && !trimmed.startsWith("Table:")) {
+      // Format: "col1: type [PK], col2: type [FK→table.col]"
+      const columns = trimmed.split(", ").map((col) => {
+        // Extract constraints if present
+        const constraintMatch = col.match(/\[([^\]]+)\]/g);
+        const constraints = constraintMatch
+          ? constraintMatch.join(" ")
+          : undefined;
+
+        // Remove constraints to get type
+        const cleanCol = col.replace(/\s*\[([^\]]+)\]/g, "").trim();
+        const [name, type] = cleanCol.split(":").map((s) => s.trim());
+
+        return { name, type, constraints };
       });
 
-      tables.push({ name: tableName, columns });
+      currentTable.columns.push(...columns);
     }
   }
 
@@ -70,12 +87,19 @@ export function SchemaDisplay({ schema }: SchemaDisplayProps) {
             {table.columns.map((column, index) => (
               <div
                 key={index}
-                className="px-3 py-2 flex justify-between items-center"
+                className="px-3 py-2 flex justify-between items-center gap-2"
               >
-                <span className="text-sm font-medium text-foreground">
-                  {column.name}
-                </span>
-                <span className="text-xs text-muted-foreground bg-muted px-2 py-1 rounded">
+                <div>
+                  <span className="text-sm font-medium text-foreground">
+                    {column.name}
+                  </span>
+                  {column.constraints && (
+                    <div className="text-xs text-primary mt-0.5">
+                      {column.constraints}
+                    </div>
+                  )}
+                </div>
+                <span className="text-xs text-muted-foreground bg-muted px-2 py-1 rounded ml-auto">
                   {column.type}
                 </span>
               </div>

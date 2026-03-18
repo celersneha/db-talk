@@ -1,6 +1,6 @@
 /**
- * Database Connection Form Component - PostgreSQL
- * Left sidebar for connecting to PostgreSQL database
+ * Database Connection Form Component
+ * Supports both PostgreSQL and MySQL with dynamic hook switching
  */
 
 "use client";
@@ -14,7 +14,7 @@ import {
   RotateCcw,
   ChevronDown,
 } from "lucide-react";
-import { useDatabase } from "@/hooks/postgresql/useDatabase";
+import { useDatabasePostgreSQL, useDatabaseMySQL } from "@/hooks";
 import {
   DATABASE_TYPES,
   DATABASE_CONFIGS,
@@ -36,17 +36,11 @@ export function ConnectionForm({
     useState<DatabaseType>("postgresql");
   const [showDatabaseDropdown, setShowDatabaseDropdown] = useState(false);
 
-  const {
-    dbUrl,
-    setDbUrl,
-    isConnecting,
-    isConnected,
-    error,
-    schema,
-    handleConnect: dbHandleConnect,
-    handleReset: dbHandleReset,
-    handleKeyPress,
-  } = useDatabase();
+  // Use dynamic hooks based on selected database
+  const postgresHook = useDatabasePostgreSQL();
+  const mysqlHook = useDatabaseMySQL();
+  const currentHook =
+    selectedDatabase === "postgresql" ? postgresHook : mysqlHook;
 
   const currentConfig = DATABASE_CONFIGS[selectedDatabase];
 
@@ -54,7 +48,7 @@ export function ConnectionForm({
    * Connect and notify parent
    */
   const handleConnect = async () => {
-    const success = await dbHandleConnect();
+    const success = await currentHook.handleConnect();
     if (success) {
       onConnectionChange(true);
     }
@@ -64,11 +58,21 @@ export function ConnectionForm({
    * Reset and notify parent
    */
   const handleReset = async () => {
-    const success = await dbHandleReset();
+    const success = await currentHook.handleReset();
     if (success) {
       onReset();
       onConnectionChange(false);
     }
+  };
+
+  /**
+   * Handle database type change - reset connection and clear URL
+   */
+  const handleDatabaseChange = (dbType: DatabaseType) => {
+    setSelectedDatabase(dbType);
+    setShowDatabaseDropdown(false);
+    // Clear the URL for the current hook
+    currentHook.setDbUrl("");
   };
 
   return (
@@ -117,9 +121,7 @@ export function ConnectionForm({
                     <button
                       key={dbType}
                       onClick={() => {
-                        setSelectedDatabase(dbType);
-                        setShowDatabaseDropdown(false);
-                        setDbUrl(""); // Clear URL when changing database type
+                        handleDatabaseChange(dbType);
                       }}
                       className={`w-full px-3 py-2.5 text-left flex items-center justify-between hover:bg-primary/10 transition-colors first:rounded-t-lg last:rounded-b-lg ${
                         selectedDatabase === dbType ? "bg-primary/20" : ""
@@ -147,12 +149,12 @@ export function ConnectionForm({
           <div>
             <div
               className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-sm font-medium ${
-                isConnected
+                currentHook.isConnected
                   ? "bg-primary text-primary-foreground"
                   : "bg-muted text-muted-foreground"
               }`}
             >
-              {isConnected ? (
+              {currentHook.isConnected ? (
                 <>
                   <CheckCircle className="w-4 h-4" />
                   Connected
@@ -167,7 +169,7 @@ export function ConnectionForm({
           </div>
 
           {/* Connection Form */}
-          {!isConnected && (
+          {!currentHook.isConnected && (
             <>
               <div>
                 <label
@@ -179,47 +181,45 @@ export function ConnectionForm({
                 <input
                   id="dbUrl"
                   type="text"
-                  value={dbUrl}
-                  onChange={(e) => setDbUrl(e.target.value)}
-                  onKeyPress={handleKeyPress}
+                  value={currentHook.dbUrl}
+                  onChange={(e) => currentHook.setDbUrl(e.target.value)}
+                  onKeyPress={currentHook.handleKeyPress}
                   placeholder={currentConfig.urlPlaceholder}
                   className="w-full px-3 py-2 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent text-sm bg-background text-foreground placeholder:text-muted-foreground"
-                  disabled={isConnecting}
+                  disabled={currentHook.isConnecting}
                 />
               </div>
 
-              {error && (
+              {currentHook.error && (
                 <div className="p-3 bg-destructive/10 border border-destructive rounded-lg">
-                  <p className="text-sm text-destructive">{error}</p>
+                  <p className="text-sm text-destructive">
+                    {currentHook.error}
+                  </p>
                 </div>
               )}
 
               <button
                 onClick={handleConnect}
-                disabled={isConnecting || !dbUrl.trim()}
+                disabled={currentHook.isConnecting || !currentHook.dbUrl.trim()}
                 className="w-full bg-primary text-primary-foreground py-2.5 rounded-lg font-medium hover:bg-primary/90 disabled:bg-muted disabled:cursor-not-allowed transition-colors flex items-center justify-center gap-2"
               >
-                {isConnecting ? (
-                  <>
-                    <Loader2 className="w-4 h-4 animate-spin" />
-                    Connecting...
-                  </>
-                ) : (
-                  "Connect Database"
+                {currentHook.isConnecting && (
+                  <Loader2 className="w-4 h-4 animate-spin" />
                 )}
+                Connect Database
               </button>
             </>
           )}
 
           {/* Connected State */}
-          {isConnected && (
+          {currentHook.isConnected && (
             <>
               <div className="p-4 bg-background border border-border rounded-lg">
                 <h3 className="text-sm font-semibold text-foreground mb-3">
                   Schema Overview
                 </h3>
                 <div className="max-h-60 overflow-y-auto">
-                  <SchemaDisplay schema={schema} />
+                  <SchemaDisplay schema={currentHook.schema} />
                 </div>
               </div>
 
