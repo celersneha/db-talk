@@ -1,48 +1,21 @@
 /**
- * AI Query Generator
- * Main orchestrator with automatic provider fallback
+ * AI Index
+ * Central export point for AI functionality
+ * Re-exports shared AI utilities and database-specific features
  */
 
-import type { GenerateQueryParams, GenerateQueryResult } from "./types";
-import { generateWithGemini } from "./providers/gemini";
-import { generateWithMistral } from "./providers/mistral";
+// Shared AI exports
+export {
+  generateSqlQuery,
+  type GenerateQueryParams,
+  type GenerateQueryResult,
+} from "./shared/index";
 
-/**
- * Generate SQL query with automatic fallback from Gemini to Mistral
- * This is the main entry point for AI-powered SQL generation
- */
-export async function generateSqlQuery(
-  params: GenerateQueryParams,
-): Promise<GenerateQueryResult> {
-  try {
-    // Try Gemini first
-    return await generateWithGemini(params);
-  } catch (error: unknown) {
-    // If rate limit error, fallback to Mistral
-    if (error instanceof Error && error.message === "RATE_LIMIT") {
-      console.log("Gemini rate limit hit, falling back to Mistral");
+export type { ParsedResponse } from "./shared/types";
 
-      try {
-        return await generateWithMistral(params);
-      } catch (mistralError) {
-        return {
-          sql: "",
-          error:
-            mistralError instanceof Error
-              ? mistralError.message
-              : "Failed to generate query with both providers",
-        };
-      }
-    }
+export { parseAiResponse, isRateLimitError } from "./shared/parsers";
 
-    // For other errors, return error message
-    return {
-      sql: "",
-      error:
-        error instanceof Error ? error.message : "Failed to generate query",
-    };
-  }
-}
+export { SQL_GENERATION_CONFIG } from "./shared/config";
 
-// Re-export types for convenience
-export type { GenerateQueryParams, GenerateQueryResult } from "./types";
+// PostgreSQL-specific exports
+export { buildSystemPrompt, buildMessages } from "./postgresql/prompts";

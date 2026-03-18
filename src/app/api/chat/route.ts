@@ -8,10 +8,10 @@ import { google } from "@ai-sdk/google";
 import { mistral } from "@ai-sdk/mistral";
 import { cookies } from "next/headers";
 import { z } from "zod";
-import { schemaStoreUtils } from "@/lib/schema-store";
-import { buildSystemPrompt } from "@/ai/prompts";
-import { SQL_GENERATION_CONFIG } from "@/ai/config";
-import { executeSqlQuery } from "@/lib/db-utils";
+import { schemaStoreUtils } from "@/lib/shared/schema-store";
+import { buildSystemPrompt } from "@/ai/postgresql/prompts";
+import { SQL_GENERATION_CONFIG } from "@/ai/shared/config";
+import { executeSqlQuery } from "@/lib/postgresql/db-utils";
 
 export const maxDuration = 30;
 

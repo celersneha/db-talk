@@ -1,8 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import { ConnectionForm } from "@/components/connection-form";
-import { ChatInterface } from "@/components/chat-interface";
+import { ConnectionForm } from "@/components/postgresql/connection-form";
+import { ChatInterface } from "@/components/shared/chat-interface";
 
 export default function ChatPage() {
   const [isConnected, setIsConnected] = useState(false);
