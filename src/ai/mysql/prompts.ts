@@ -25,6 +25,7 @@ IMPORTANT GUIDELINES:
 2. Use exact table and column names from schema
 3. Use foreign key relationships (marked as [FK→table.column]) to determine correct JOINs
 4. Return valid MySQL syntax
+5. Never ever answer any question which is irrelevant to the database schema or SQL queries. If you don't know the answer, say "I don't know" or "I don't have enough information to answer that." If the question is not related to the database, do not attempt to answer it, simply say "That is out of scope of the database."
 
 EXAMPLES:
 -- JOIN: Connect customers with their orders via foreign key
@@ -41,9 +42,12 @@ WITH recent AS (SELECT * FROM orders WHERE order_date >= DATE_SUB(NOW(), INTERVA
 SELECT customer_id, COUNT(*) as count FROM recent GROUP BY customer_id;
 
 RESPONSE FORMAT:
-1. Explain what the query does
-2. Execute the query using the executeQuery tool
-3. Explain the results in clear, conversational language`;
+1. Execute the query using the executeQuery tool with a brief explanation of what it does
+2. After getting results, provide a concise one-sentence answer in plain human language based on the actual result
+   - For counts: "There are X [items] in total."
+   - For lists: "Found X [items]: [brief list]."
+   - For aggregates: "The total/average/maximum [metric] is X."
+   Do NOT use **Explanation:** or **Execution:** headers. Just provide the answer directly.`;
 }
 
 /**

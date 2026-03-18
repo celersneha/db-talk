@@ -11,6 +11,7 @@ import { useState } from "react";
 import { useChat } from "@ai-sdk/react";
 import { DefaultChatTransport } from "ai";
 import { Database, Send, Loader2, Bot, User, Table } from "lucide-react";
+import ReactMarkdown from "react-markdown";
 import {
   Conversation,
   ConversationContent,
@@ -113,7 +114,15 @@ export function ChatInterface({ isConnected }: ChatInterfaceProps) {
                                   : "bg-card text-foreground"
                               }`}
                             >
-                              <p className="whitespace-pre-wrap">{part.text}</p>
+                              {message.role === "assistant" ? (
+                                <div className="prose prose-sm dark:prose-invert max-w-none">
+                                  <ReactMarkdown>{part.text}</ReactMarkdown>
+                                </div>
+                              ) : (
+                                <p className="whitespace-pre-wrap">
+                                  {part.text}
+                                </p>
+                              )}
                             </div>
                           </MessageContent>
                         );
