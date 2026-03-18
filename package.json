@@ -7,8 +7,10 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "setup-db": "tsx scripts/setup_docker.ts",
-    "seed": "tsx scripts/seed_data.ts"
+    "setup-db:postgres": "tsx scripts/setup/postgresql.ts",
+    "setup-db:mysql": "tsx scripts/setup/mysql.ts",
+    "seed:postgres": "tsx scripts/seed/postgresql.ts",
+    "seed:mysql": "tsx scripts/seed/mysql.ts"
   },
   "dependencies": {
     "@ai-sdk/google": "^3.0.31",

@@ -1,6 +1,6 @@
 /**
- * Database Seeding Script
- * Executes init.sql to seed the database with sample data
+ * PostgreSQL Database Seeding Script
+ * Executes init-postgres.sql to seed the database with sample data
  * Run this after: docker compose up -d
  */
 
@@ -12,8 +12,8 @@ import * as path from "path";
 const DB_URL = "postgresql://dbuser:dbpassword@localhost:5432/healthcare";
 
 // Wait for database to be ready
-async function waitForDatabase(maxAttempts = 30): Promise<void> {
-  console.log("⏳ Waiting for database to be ready...");
+async function waitForDatabase(maxAttempts: number = 30): Promise<void> {
+  console.log("⏳ Waiting for PostgreSQL database to be ready...");
 
   for (let attempt = 1; attempt <= maxAttempts; attempt++) {
     const client = new Client({ connectionString: DB_URL });
@@ -22,14 +22,14 @@ async function waitForDatabase(maxAttempts = 30): Promise<void> {
       await client.connect();
       await client.query("SELECT 1");
       await client.end();
-      console.log("✅ Database is ready!");
+      console.log("✅ PostgreSQL database is ready!");
       return;
     } catch (error) {
       await client.end().catch(() => {});
 
       if (attempt === maxAttempts) {
         throw new Error(
-          "Database failed to become ready in time. Make sure Docker containers are running: docker compose up -d",
+          "PostgreSQL database failed to become ready in time. Make sure Docker containers are running: docker compose up -d",
         );
       }
 
@@ -39,35 +39,46 @@ async function waitForDatabase(maxAttempts = 30): Promise<void> {
   }
 }
 
-// Execute SQL from init.sql file
+// Execute SQL from init-postgres.sql file
 async function executeSeedSQL(client: Client): Promise<void> {
-  const initSqlPath = path.join(__dirname, "init.sql");
+  const initSqlPath = path.join(__dirname, "init-postgres.sql");
 
   if (!fs.existsSync(initSqlPath)) {
-    throw new Error("init.sql not found! Please run: npm run setup-db first");
+    throw new Error(
+      "init-postgres.sql not found! Please run: npm run setup-db:postgres first",
+    );
   }
 
-  console.log("\n📊 Reading init.sql...");
+  console.log("\n📊 Reading init-postgres.sql...");
   const sqlContent = fs.readFileSync(initSqlPath, "utf-8");
 
   console.log("🌱 Executing seed SQL...");
   await client.query(sqlContent);
-  console.log("✅ Database seeded successfully!");
+  console.log("✅ PostgreSQL database seeded successfully!");
+}
+
+// Data summary row type
+interface CountResult {
+  count: string;
 }
 
 // Display data summary
 async function displaySummary(client: Client): Promise<void> {
   console.log("\n📊 Data Summary:");
 
-  const patientCount = await client.query("SELECT COUNT(*) FROM patients");
-  const doctorCount = await client.query("SELECT COUNT(*) FROM doctors");
-  const appointmentCount = await client.query(
+  const patientCount = await client.query<CountResult>(
+    "SELECT COUNT(*) FROM patients",
+  );
+  const doctorCount = await client.query<CountResult>(
+    "SELECT COUNT(*) FROM doctors",
+  );
+  const appointmentCount = await client.query<CountResult>(
     "SELECT COUNT(*) FROM appointments",
   );
-  const recordCount = await client.query(
+  const recordCount = await client.query<CountResult>(
     "SELECT COUNT(*) FROM medical_records",
   );
-  const prescriptionCount = await client.query(
+  const prescriptionCount = await client.query<CountResult>(
     "SELECT COUNT(*) FROM prescriptions",
   );
 
@@ -88,9 +99,9 @@ async function displaySummary(client: Client): Promise<void> {
 }
 
 // Main execution
-async function main() {
+async function main(): Promise<void> {
   try {
-    console.log("🚀 Starting database seeding...\n");
+    console.log("🚀 Starting PostgreSQL database seeding...\n");
 
     // Step 1: Wait for database to be ready
     await waitForDatabase();
@@ -98,7 +109,7 @@ async function main() {
     // Step 2: Connect to database
     const client = new Client({ connectionString: DB_URL });
     await client.connect();
-    console.log("✅ Connected to database");
+    console.log("✅ Connected to PostgreSQL database");
 
     // Step 3: Execute seed SQL
     await executeSeedSQL(client);
@@ -109,7 +120,7 @@ async function main() {
     // Cleanup
     await client.end();
 
-    console.log("\n✨ Database seeding completed successfully!");
+    console.log("\n✨ PostgreSQL database seeding completed successfully!");
     console.log("\n📝 Connection Details:");
     console.log(`   URL: ${DB_URL}`);
     console.log(`   Adminer: http://localhost:8080`);
@@ -122,5 +133,4 @@ async function main() {
   }
 }
 
-// Run the script
 main();

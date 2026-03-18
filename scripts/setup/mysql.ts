@@ -1,66 +1,68 @@
 /**
- * Database Setup Script
- * Automatically creates docker-compose.yml, init.sql, and updates README
- * Run this first, then manually run: docker compose up -d
- * Then run: npm run seed
+ * MySQL Database Setup Script
+ * Automatically creates docker-compose-mysql.yml and init-mysql.sql
+ * Run this first, then manually run: docker compose -f docker-compose-mysql.yml up -d
+ * Then run: npm run seed:mysql
  */
 
 import * as fs from "fs";
 import * as path from "path";
 
-// Docker Compose configuration with Postgres 15 and Adminer
+// Docker Compose configuration with MySQL 8.0 and Adminer
 const DOCKER_COMPOSE_CONTENT = `version: '3.8'
 
 services:
-  postgres:
-    image: postgres:15-alpine
-    container_name: db-talk-postgres
+  mysql:
+    image: mysql:8.0
+    container_name: db-talk-mysql
     environment:
-      POSTGRES_USER: dbuser
-      POSTGRES_PASSWORD: dbpassword
-      POSTGRES_DB: healthcare
+      MYSQL_ROOT_PASSWORD: rootpassword
+      MYSQL_USER: dbuser
+      MYSQL_PASSWORD: dbpassword
+      MYSQL_DATABASE: healthcare
     ports:
-      - "5432:5432"
+      - "3306:3306"
     volumes:
-      - postgres_data:/var/lib/postgresql/data
+      - mysql_data:/var/lib/mysql
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U dbuser -d healthcare"]
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
       interval: 5s
       timeout: 5s
       retries: 5
 
   adminer:
     image: adminer:latest
-    container_name: db-talk-adminer
+    container_name: db-talk-adminer-mysql
     ports:
-      - "8080:8080"
+      - "8081:8080"
     depends_on:
-      - postgres
+      - mysql
 
 volumes:
-  postgres_data:
+  mysql_data:
 `;
 
-// Database connection string
-const DB_URL = "postgresql://dbuser:dbpassword@localhost:5432/healthcare";
-
-// Generate init.sql with 50 entries per table
+// Generate init-mysql.sql with 50 entries per table
 function generateInitSQL(): string {
   const sql: string[] = [];
 
+  // Disable FK checks for data loading
+  sql.push(`SET FOREIGN_KEY_CHECKS=0;`);
+  sql.push(``);
+
   // Drop existing tables
   sql.push(`-- Drop existing tables for clean setup`);
-  sql.push(`DROP TABLE IF EXISTS prescriptions CASCADE;`);
-  sql.push(`DROP TABLE IF EXISTS appointments CASCADE;`);
-  sql.push(`DROP TABLE IF EXISTS medical_records CASCADE;`);
-  sql.push(`DROP TABLE IF EXISTS doctors CASCADE;`);
-  sql.push(`DROP TABLE IF EXISTS patients CASCADE;`);
+  sql.push(`DROP TABLE IF EXISTS prescriptions;`);
+  sql.push(`DROP TABLE IF EXISTS appointments;`);
+  sql.push(`DROP TABLE IF EXISTS medical_records;`);
+  sql.push(`DROP TABLE IF EXISTS doctors;`);
+  sql.push(`DROP TABLE IF EXISTS patients;`);
   sql.push(``);
 
   // Create patients table
   sql.push(`-- Create patients table`);
   sql.push(`CREATE TABLE patients (`);
-  sql.push(`  id SERIAL PRIMARY KEY,`);
+  sql.push(`  id INT AUTO_INCREMENT PRIMARY KEY,`);
   sql.push(`  name VARCHAR(255) NOT NULL,`);
   sql.push(`  email VARCHAR(255) UNIQUE NOT NULL,`);
   sql.push(`  phone VARCHAR(20),`);
@@ -68,78 +70,92 @@ function generateInitSQL(): string {
   sql.push(`  gender VARCHAR(10),`);
   sql.push(`  address TEXT,`);
   sql.push(`  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,`);
-  sql.push(`  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP`);
+  sql.push(
+    `  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP`,
+  );
   sql.push(`);`);
   sql.push(``);
 
   // Create doctors table
   sql.push(`-- Create doctors table`);
   sql.push(`CREATE TABLE doctors (`);
-  sql.push(`  id SERIAL PRIMARY KEY,`);
+  sql.push(`  id INT AUTO_INCREMENT PRIMARY KEY,`);
   sql.push(`  name VARCHAR(255) NOT NULL,`);
   sql.push(`  email VARCHAR(255) UNIQUE NOT NULL,`);
   sql.push(`  phone VARCHAR(20),`);
   sql.push(`  specialization VARCHAR(100) NOT NULL,`);
   sql.push(`  license_number VARCHAR(50) UNIQUE NOT NULL,`);
-  sql.push(`  years_of_experience INTEGER,`);
+  sql.push(`  years_of_experience INT,`);
   sql.push(`  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,`);
-  sql.push(`  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP`);
+  sql.push(
+    `  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP`,
+  );
   sql.push(`);`);
   sql.push(``);
 
   // Create appointments table
   sql.push(`-- Create appointments table`);
   sql.push(`CREATE TABLE appointments (`);
-  sql.push(`  id SERIAL PRIMARY KEY,`);
-  sql.push(
-    `  patient_id INTEGER NOT NULL REFERENCES patients(id) ON DELETE CASCADE,`,
-  );
-  sql.push(
-    `  doctor_id INTEGER NOT NULL REFERENCES doctors(id) ON DELETE CASCADE,`,
-  );
-  sql.push(`  appointment_date TIMESTAMP NOT NULL,`);
+  sql.push(`  id INT AUTO_INCREMENT PRIMARY KEY,`);
+  sql.push(`  patient_id INT NOT NULL,`);
+  sql.push(`  doctor_id INT NOT NULL,`);
+  sql.push(`  appointment_date DATETIME NOT NULL,`);
   sql.push(`  status VARCHAR(20) DEFAULT 'scheduled',`);
   sql.push(`  reason TEXT,`);
   sql.push(`  notes TEXT,`);
   sql.push(`  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,`);
-  sql.push(`  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP`);
+  sql.push(
+    `  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,`,
+  );
+  sql.push(
+    `  FOREIGN KEY (patient_id) REFERENCES patients(id) ON DELETE CASCADE,`,
+  );
+  sql.push(
+    `  FOREIGN KEY (doctor_id) REFERENCES doctors(id) ON DELETE CASCADE`,
+  );
   sql.push(`);`);
   sql.push(``);
 
   // Create medical_records table
   sql.push(`-- Create medical_records table`);
   sql.push(`CREATE TABLE medical_records (`);
-  sql.push(`  id SERIAL PRIMARY KEY,`);
-  sql.push(
-    `  patient_id INTEGER NOT NULL REFERENCES patients(id) ON DELETE CASCADE,`,
-  );
-  sql.push(
-    `  doctor_id INTEGER NOT NULL REFERENCES doctors(id) ON DELETE CASCADE,`,
-  );
+  sql.push(`  id INT AUTO_INCREMENT PRIMARY KEY,`);
+  sql.push(`  patient_id INT NOT NULL,`);
+  sql.push(`  doctor_id INT NOT NULL,`);
   sql.push(`  diagnosis TEXT NOT NULL,`);
   sql.push(`  symptoms TEXT,`);
   sql.push(`  treatment TEXT,`);
-  sql.push(`  visit_date TIMESTAMP NOT NULL,`);
+  sql.push(`  visit_date DATETIME NOT NULL,`);
   sql.push(`  notes TEXT,`);
   sql.push(`  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,`);
-  sql.push(`  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP`);
+  sql.push(
+    `  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,`,
+  );
+  sql.push(
+    `  FOREIGN KEY (patient_id) REFERENCES patients(id) ON DELETE CASCADE,`,
+  );
+  sql.push(
+    `  FOREIGN KEY (doctor_id) REFERENCES doctors(id) ON DELETE CASCADE`,
+  );
   sql.push(`);`);
   sql.push(``);
 
   // Create prescriptions table
-  sql.push(`-- Create prescriptions table`);
   sql.push(`CREATE TABLE prescriptions (`);
-  sql.push(`  id SERIAL PRIMARY KEY,`);
-  sql.push(
-    `  medical_record_id INTEGER NOT NULL REFERENCES medical_records(id) ON DELETE CASCADE,`,
-  );
+  sql.push(`  id INT AUTO_INCREMENT PRIMARY KEY,`);
+  sql.push(`  medical_record_id INT NOT NULL,`);
   sql.push(`  medication_name VARCHAR(255) NOT NULL,`);
   sql.push(`  dosage VARCHAR(100) NOT NULL,`);
   sql.push(`  frequency VARCHAR(100) NOT NULL,`);
   sql.push(`  duration VARCHAR(100),`);
   sql.push(`  instructions TEXT,`);
   sql.push(`  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,`);
-  sql.push(`  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP`);
+  sql.push(
+    `  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,`,
+  );
+  sql.push(
+    `  FOREIGN KEY (medical_record_id) REFERENCES medical_records(id) ON DELETE CASCADE`,
+  );
   sql.push(`);`);
   sql.push(``);
 
@@ -369,7 +385,10 @@ function generateInitSQL(): string {
     appointmentDate.setDate(today.getDate() + daysOffset);
     const hours = 9 + (i % 8);
     appointmentDate.setHours(hours, 0, 0, 0);
-    const dateStr = appointmentDate.toISOString().split(".")[0];
+    const dateStr = appointmentDate
+      .toISOString()
+      .split(".")[0]
+      .replace("T", " ");
     const status = statuses[i % statuses.length];
     const reason = `Consultation for ${diagnoses[i % diagnoses.length]}`;
 
@@ -391,7 +410,7 @@ function generateInitSQL(): string {
     const today = new Date();
     const visitDate = new Date(today);
     visitDate.setDate(today.getDate() - daysAgo);
-    const dateStr = visitDate.toISOString().split(".")[0];
+    const dateStr = visitDate.toISOString().split(".")[0].replace("T", " ");
 
     sql.push(
       `INSERT INTO medical_records (patient_id, doctor_id, diagnosis, symptoms, treatment, visit_date) VALUES (${patientId}, ${doctorId}, '${diagnosis}', '${symptoms}', '${treatment}', '${dateStr}');`,
@@ -430,190 +449,56 @@ function generateInitSQL(): string {
   }
   sql.push(``);
 
+  // Re-enable FK checks
+  sql.push(`SET FOREIGN_KEY_CHECKS=1;`);
+  sql.push(``);
+
   return sql.join("\n");
 }
 
-// Create docker-compose.yml file
+// Create docker-compose-mysql.yml file
 function createDockerCompose(): void {
-  const rootDir = path.join(__dirname, "..");
-  const dockerComposePath = path.join(rootDir, "docker-compose.yml");
+  const rootDir = path.join(__dirname, "../..");
+  const dockerComposePath = path.join(rootDir, "docker-compose-mysql.yml");
 
   fs.writeFileSync(dockerComposePath, DOCKER_COMPOSE_CONTENT);
-  console.log("✅ Created docker-compose.yml");
+  console.log("✅ Created docker-compose-mysql.yml");
 }
 
-// Create init.sql file
+// Create init-mysql.sql file
 function createInitSQL(): void {
-  const scriptsDir = __dirname;
-  const initSqlPath = path.join(scriptsDir, "init.sql");
+  const rootDir = path.join(__dirname, "../..");
+  const scriptsDir = path.join(rootDir, "scripts/seed");
+  const initSqlPath = path.join(scriptsDir, "init-mysql.sql");
 
   const sqlContent = generateInitSQL();
   fs.writeFileSync(initSqlPath, sqlContent);
-  console.log("✅ Created init.sql with 50 entries per table");
-}
-
-// Update README with database setup instructions
-function updateREADME(): void {
-  const rootDir = path.join(__dirname, "..");
-  const readmePath = path.join(rootDir, "README.md");
-
-  const databaseSection = `
-## Database Setup (Optional)
-
-For testing purposes, you can set up a local PostgreSQL database with sample healthcare data.
-
-### 1. Generate Database Files
-
-Run the setup script to generate \`docker-compose.yml\` and \`init.sql\`:
-
-\`\`\`bash
-npm run setup-db
-# or
-tsx scripts/setup_docker.ts
-\`\`\`
-
-This will create:
-- \`docker-compose.yml\` - Docker Compose configuration with Postgres 15 and Adminer
-- \`scripts/init.sql\` - SQL file with 50 entries for each table (patients, doctors, appointments, medical_records, prescriptions)
-
-### 2. Start Docker Containers
-
-\`\`\`bash
-docker compose up -d
-\`\`\`
-
-This starts:
-- **PostgreSQL 15** on port 5432
-- **Adminer** (database management UI) on port 8080
-
-### 3. Seed the Database
-
-\`\`\`bash
-npm run seed
-# or
-tsx scripts/seed_data.ts
-\`\`\`
-
-### 4. Access the Database
-
-**Connection URL:**
-\`\`\`
-postgresql://dbuser:dbpassword@localhost:5432/healthcare
-\`\`\`
-
-**Adminer UI:**
-- URL: http://localhost:8080
-- System: PostgreSQL
-- Server: postgres
-- Username: dbuser
-- Password: dbpassword
-- Database: healthcare
-
-### 5. Stop Docker Containers
-
-\`\`\`bash
-docker compose down
-\`\`\`
-
-### Database Schema
-
-The sample database includes 5 tables with 50 entries each:
-
-- **patients** - Patient information (name, email, phone, DOB, gender, address)
-- **doctors** - Doctor information (name, email, specialization, license, experience)
-- **appointments** - Scheduled appointments between patients and doctors
-- **medical_records** - Medical visit records with diagnoses and treatments
-- **prescriptions** - Medication prescriptions linked to medical records
-
-`;
-
-  if (fs.existsSync(readmePath)) {
-    let content = fs.readFileSync(readmePath, "utf-8");
-
-    // Remove existing database setup section if present
-    const dbSectionRegex = /## Database Setup \(Optional\)[\s\S]*?(?=\n## |$)/;
-    content = content.replace(dbSectionRegex, "");
-
-    // Add database section after "How to Use" section
-    const howToUseRegex = /(## How to Use[\s\S]*?)(\n## )/;
-    if (howToUseRegex.test(content)) {
-      content = content.replace(howToUseRegex, `$1\n${databaseSection}$2`);
-    } else {
-      // If "How to Use" section not found, append at the end
-      content += "\n" + databaseSection;
-    }
-
-    fs.writeFileSync(readmePath, content);
-    console.log("✅ Updated README.md with database setup instructions");
-  } else {
-    console.log("⚠️  README.md not found, skipping update");
-  }
-}
-
-// Create package.json scripts if not present
-function updatePackageJsonScripts(): void {
-  const rootDir = path.join(__dirname, "..");
-  const packageJsonPath = path.join(rootDir, "package.json");
-
-  if (fs.existsSync(packageJsonPath)) {
-    const packageJson = JSON.parse(fs.readFileSync(packageJsonPath, "utf-8"));
-
-    let updated = false;
-
-    if (!packageJson.scripts["setup-db"]) {
-      packageJson.scripts["setup-db"] = "tsx scripts/setup_docker.ts";
-      updated = true;
-    }
-
-    if (!packageJson.scripts["seed"]) {
-      packageJson.scripts["seed"] = "tsx scripts/seed_data.ts";
-      updated = true;
-    }
-
-    if (updated) {
-      fs.writeFileSync(
-        packageJsonPath,
-        JSON.stringify(packageJson, null, 2) + "\n",
-      );
-      console.log("✅ Updated package.json with database scripts");
-    } else {
-      console.log("📄 package.json scripts already configured");
-    }
-  }
+  console.log("✅ Created scripts/seed/init-mysql.sql");
 }
 
 // Main execution
-async function main() {
+async function main(): Promise<void> {
   try {
-    console.log("🚀 Starting database setup file generation...\n");
+    console.log("🚀 Starting MySQL database setup file generation...\n");
 
-    // Step 1: Create docker-compose.yml
     createDockerCompose();
-
-    // Step 2: Create init.sql with 50 entries per table
     createInitSQL();
 
-    // Step 3: Update README
-    updateREADME();
-
-    // Step 4: Update package.json scripts
-    updatePackageJsonScripts();
-
-    console.log("\n✨ Setup files created successfully!");
+    console.log("\n✨ MySQL setup files created successfully!");
     console.log("\n📝 Next Steps:");
     console.log("   1. Start Docker containers:");
-    console.log("      docker compose up -d");
+    console.log("      docker compose -f docker-compose-mysql.yml up -d");
     console.log("");
     console.log(
       "   2. Wait for containers to be ready (check with: docker ps)",
     );
     console.log("");
     console.log("   3. Seed the database:");
-    console.log("      npm run seed");
+    console.log("      npm run seed:mysql");
     console.log("");
-    console.log("   4. Access Adminer at: http://localhost:8080");
+    console.log("   4. Access Adminer at: http://localhost:8081");
     console.log(
-      "   5. Use connection URL: postgresql://dbuser:dbpassword@localhost:5432/healthcare",
+      "   5. Connection URL: mysql://dbuser:dbpassword@localhost:3306/healthcare",
     );
   } catch (error) {
     console.error("\n❌ Error during setup:", error);
@@ -621,5 +506,4 @@ async function main() {
   }
 }
 
-// Run the script
 main();
